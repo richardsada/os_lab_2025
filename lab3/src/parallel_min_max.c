@@ -106,6 +106,15 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
+  int pipes[pnum][2];
+  for (int i = 0; i < pnum; i++) {
+      if (pipe(pipes[i]) == -1) {
+          perror("pipe failed");
+          exit(EXIT_FAILURE);
+      }
+  }
+  
+
   for (int i = 0; i < pnum; i++) {
     pid_t child_pid = fork();
     if (child_pid >= 0) {
@@ -144,7 +153,11 @@ int main(int argc, char **argv) {
           fprintf(fp, "%d %d" , local_min_max.min, local_min_max.max);
           fclose(fp);
         } else {
-          // use pipe here
+          
+          close(pipes[i][0]);  // закрываем read end
+          write(pipes[i][1], &local_min_max, sizeof(struct MinMax));
+          close(pipes[i][1]);  // закрываем write end
+
         }
         return 0;
       }
@@ -181,7 +194,15 @@ int main(int argc, char **argv) {
       if(!debugmode){remove(filename);};
 
     } else {
-      // read from pipes
+      
+      struct MinMax local_result;  
+      close(pipes[i][1]);
+      read(pipes[i][0], &local_result, sizeof(struct MinMax));
+      close(pipes[i][0]);
+      
+      min = local_result.min; 
+      max = local_result.max;
+
     }
 
     if (min < min_max.min) min_max.min = min;
