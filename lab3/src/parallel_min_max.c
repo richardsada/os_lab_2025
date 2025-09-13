@@ -19,7 +19,8 @@ int main(int argc, char **argv) {
   int seed = -1;
   int array_size = -1;
   int pnum = -1;
-  bool with_files = false;
+  bool with_files = true;
+  bool debugmode = true;
 
   while (true) {
     int current_optind = optind ? optind : 1;
@@ -92,6 +93,14 @@ int main(int argc, char **argv) {
 
   int *array = malloc(sizeof(int) * array_size);
   GenerateArray(array, array_size, seed);
+
+  if(debugmode){printf("Весь массив: ");
+      for(unsigned int i = 0; i < array_size ; i++) {
+          printf("%d ", array[i]);
+      }
+      printf("\n");
+    }
+
   int active_child_processes = 0;
 
   struct timeval start_time;
@@ -103,15 +112,37 @@ int main(int argc, char **argv) {
       // successful fork
       active_child_processes += 1;
       if (child_pid == 0) {
+
         int child_part = array_size / pnum;
         int start_current_part = child_part * i;
-        if (i == (pnum-1)){int end_current_part = array_size;}
-        else{int end_current_part = child_part *(i+1);};
+        int end_current_part = (i == pnum - 1) ? array_size : child_part * (i + 1);
+      
         
+        struct MinMax local_min_max;
+        local_min_max.min = INT_MAX;
+        local_min_max.max = INT_MIN;
+
+        local_min_max.max = array[start_current_part];
+        local_min_max.min = array[start_current_part];
+        for(unsigned int i = start_current_part; i < end_current_part; i++ ){
+          if(array[i] > local_min_max.max){ local_min_max.max = array[i];};
+          if(array[i] < local_min_max.min){ local_min_max.min = array[i];};
+        };
+
+        if(debugmode){for(unsigned int i = start_current_part; i < end_current_part ; i++) {
+            printf("%d ", array[i]);
+        }
+        printf("\n");}
+
 
 
         if (with_files) {
-          // use files here
+          FILE *fp;
+          char filename[100];
+          sprintf(filename, "data_%d.txt", i+1);
+          fp=fopen(filename, "w+");
+          fprintf(fp, "%d %d" , local_min_max.min, local_min_max.max);
+          fclose(fp);
         } else {
           // use pipe here
         }
@@ -126,7 +157,7 @@ int main(int argc, char **argv) {
 
   while (active_child_processes > 0) {
     
-    wait();
+    wait(NULL);
 
     active_child_processes -= 1;
   }
@@ -140,7 +171,15 @@ int main(int argc, char **argv) {
     int max = INT_MIN;
 
     if (with_files) {
-      // read from files
+
+      char filename[100];
+      sprintf(filename, "data_%d.txt", i+1);
+      FILE *fp;
+      fp = fopen(filename,"r");
+      fscanf(fp, "%d %d", &min, &max);
+      fclose(fp);
+      if(!debugmode){remove(filename);};
+
     } else {
       // read from pipes
     }
@@ -154,6 +193,9 @@ int main(int argc, char **argv) {
 
   double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
   elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
+  
+
+
 
   free(array);
 
