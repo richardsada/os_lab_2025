@@ -19,8 +19,8 @@ int main(int argc, char **argv) {
   int seed = -1;
   int array_size = -1;
   int pnum = -1;
-  bool with_files = true;
-  bool debugmode = true;
+  bool with_files = false;
+  bool debugmode = false;
 
   while (true) {
     int current_optind = optind ? optind : 1;
