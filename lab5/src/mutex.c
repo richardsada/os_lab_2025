@@ -23,8 +23,7 @@ int r1 = 0, r2 = 0, r3 = 0;
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 
 int main() {
-  hread_t thread1, thread2;
-pt
+  pthread_t thread1, thread2;
   if (pthread_create(&thread1, NULL, (void *)do_one_thing,
 			  (void *)&common) != 0) {
     perror("pthread_create");
